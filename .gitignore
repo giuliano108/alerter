@@ -1,0 +1,5 @@
+.*.swp
+log/*.log
+data/*.db
+doc
+TODO.rdoc

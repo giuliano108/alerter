@@ -1,0 +1,53 @@
+.container
+  %h2 Latest submissions:
+  %table.table
+    %tr
+      %th Submitted at
+      %th Tag
+      %th Submitted data
+      %th 
+        %span.tooltip-here{:title => "Did we send out a simple notification, or an alert?"} Notification type
+    - @submissions.each_with_index do |submission,i|
+      - submission.notification_type = :pending_alert if submission.notification_type == :pending and submission.content.has_key? 'error' 
+      %tr
+        %td #{submission.submitted_at}
+        %td #{submission.tag}
+        %td
+          %a.popup.btn.btn-mini.btn-info{:href => "##{i}"} view
+        %td
+          - case submission.notification_type
+          - when :pending
+            %button.btn.btn-mini
+              %i.icon-question-sign.icon-black
+              pending
+          - when :pending_alert
+            %button.btn.btn-mini.btn-danger
+              %i.icon-exclamation-sign.icon-white
+              pending alert
+          - when :sending
+            %button.btn.btn-mini.btn-danger
+              %i.icon-exclamation-sign.icon-white
+              couldn't send
+          - when :notice
+            %button.btn.btn-mini.btn-success
+              %i.icon-info-sign.icon-white
+              notice
+          - when :alert
+            %button.btn.btn-mini.btn-danger
+              %i.icon-exclamation-sign.icon-white
+              alert
+          - when :missing
+            %button.btn.btn-mini.btn-warning
+              %i.icon-exclamation-sign.icon-white
+              missing
+  %div{:style=>"display:none;"}
+    #popup_content
+:javascript
+  var data = #{@submissions.to_json};
+  $(document).ready(function() {
+    $('.tooltip-here').tooltip();
+    $('.popup').click(function(){
+      $('#popup_content').empty().append(prettyPrint(data[$(this).attr('href').substring(1)]));
+      $(this).colorbox({transition:"none", inline:true, width:"80%", height:"80%", scrolling:true, href: "#popup_content"});
+    });
+  });

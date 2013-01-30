@@ -1,0 +1,36 @@
+!!!
+%html{:lang => 'en'}
+  %head
+    %title= @title || SiteConfig.title
+    %link{:href => '/bootstrap.min.css', :rel => 'stylesheet', :type => 'text/css'}
+    %link{:href => '/colorbox.css', :rel => 'stylesheet', :type => 'text/css'}
+    :css
+      .navbar .brand {
+        -moz-transition: all 0.2s linear 0s;
+        color: #000000;
+        float: right;
+        font-weight: bold;
+        margin-left: 20px;
+        padding-left: 0;
+        padding-right: 0;
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.1), 0 0 30px rgba(255, 255, 255, 0.125);
+      }
+    %script{:type => 'text/javascript', :src => 'js/jquery-1.7.2.min.js'}
+    %script{:type => 'text/javascript', :src => 'js/jquery.colorbox-min.js'}
+    %script{:type => 'text/javascript', :src => 'js/bootstrap-tooltip.js'}
+    %script{:type => 'text/javascript', :src => 'js/prettyprint.js'}
+  %body
+    .navbar
+      .navbar-inner
+        .container
+          %a.brand{:href => '/'} #{SiteConfig.title}
+          %ul.nav
+            %li
+              %p.navbar-text Collects scheduled jobs results. Sends out notifications and alerts.
+
+    #content= yield
+    %hr
+      .container
+        .pull-left
+          #{SiteConfig.title}
+        .pull-right= "(#{Sinatra::Base.environment.to_s} on #{request.env['SERVER_SOFTWARE'].gsub(/[ \/].*$/, '')})"
