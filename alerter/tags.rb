@@ -1,6 +1,8 @@
-module Tags
-    require 'singleton'
-    require 'ice_cube'
+require 'active_support/time'
+require 'ice_cube'
+require 'singleton'
+
+module Alerter::Tags
 
     class IceCube::Schedule
         def previous_schedule_range
@@ -29,7 +31,10 @@ module Tags
     class Handler
         include Singleton
 
+        @config = nil # must be assigned in derived classes
+
         def initialize
+            @tag_name = self.class.to_s.split("::").last.downcase
             @schedule = IceCube::Schedule.new(1.month.ago.beginning_of_day)
             @schedule.add_recurrence_rule IceCube::Rule.daily
             # For example, add these if your schedule doesn't occur on weekends
@@ -44,7 +49,7 @@ module Tags
         def remove_old(submissions) # assumes descending order
             old = submissions.to_a[60..-1] # by default, keep 60 submissions
             unless old.nil?
-                old.each { |s| s.destroy or raise Exceptions::DestroyFailed.new 'remove_old_submission' }
+                old.each { |s| s.destroy or raise Alerter::Exceptions::DestroyFailed.new 'remove_old_submission' }
             end
         end
 
@@ -56,14 +61,14 @@ module Tags
                 missed_submission.tag               = self.class.name.gsub(/^.*::/,'').downcase
                 missed_submission.notification_type = :missing
                 missed_submission.content           = {'error' => 'missed schedule?'}
-                missed_submission.save or raise Exceptions::SaveFailed.new 'generate_missing'
+                missed_submission.save or raise Alerter::Exceptions::SaveFailed.new 'generate_missing'
             end
         end
 
         def missing(submissions,url,mailer)
             submissions.each do |submission|
                 submission.notification_type = :sending 
-                submission.save or raise Exceptions::SaveFailed.new 'sending'
+                submission.save or raise Alerter::Exceptions::SaveFailed.new 'sending'
                 if submission.content.has_key? 'error'
                     subject =  'ERROR - ' + submission.content['error']
                 else
@@ -75,7 +80,7 @@ module Tags
                 mailer.send(@config[:from],@config[:recipients],subject,body)
                 submission.notified_at = DateTime.now
                 submission.notification_type = :alert
-                submission.save or raise Exceptions::SaveFailed.new 'sent'
+                submission.save or raise Alerter::Exceptions::SaveFailed.new 'sent'
             end
         end
 
@@ -93,7 +98,7 @@ module Tags
                 mailer.send(@config[:from],@config[:recipients],subject,body)
                 submission.notified_at = DateTime.now
                 submission.notification_type = :alert
-                submission.save or raise Exceptions::SaveFailed.new 'unsent'
+                submission.save or raise Alerter::Exceptions::SaveFailed.new 'unsent'
             end
         end
 
@@ -102,10 +107,11 @@ module Tags
         end
     end
 
+    require 'alerter/basetags'
     # load handlers
     Dir.glob(File.join(File.dirname(__FILE__),'handlers','*.rb')) do |dir| 
         require File.join(File.dirname(__FILE__),'handlers',File.basename(dir, '.*'))
     end 
 
-    @handlers = self.constants.each_with_object({}) {|c,h| h[c.to_s.downcase.to_sym]=self.const_get(c) unless self.const_get(c) == Tags::Handler}
+    @handlers = self.constants.each_with_object({}) {|c,h| h[c.to_s.downcase.to_sym]=self.const_get(c) unless self.const_get(c) == Alerter::Tags::Handler}
 end

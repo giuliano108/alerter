@@ -1,17 +1,21 @@
-module Tags
-    class Ccftp < Tags::Handler
+module Alerter::BaseTags
+    
+    # An "abstract" robocopy class
+    class Robocopy < Alerter::Tags::Handler
+        @from_name = nil # must be assigned in derived classes
+
         def initialize
             super
-            case Tags.get_environment
+            case Alerter::Tags.get_environment
             when :production
                 @config = {
-                    :recipients => ['it@domain.co.uk'],
-                    :from       => 'CCFTP Backup <alerter@monitoring.domain.co.uk>'
+                    :recipients => Alerter[:mailer_recipients],
+                    :from       => "#{@from_name} <#{Alerter[:mailer_from]}>"
                 }
             when :development
                 @config = {
-                    :recipients => ['giuliano@domain.co.uk'],
-                    :from       => 'CCFTP Backup <root@alerter>'
+                    :recipients => Alerter[:mailer_recipients],
+                    :from       => "#{@from_name} <#{Alerter[:mailer_from]}>"
                 }
             else
                 fail 'Unknown environment'
@@ -21,7 +25,7 @@ module Tags
         def pending(submissions,url,mailer)
             submissions.each do |submission|
                 submission.notification_type = :sending 
-                submission.save or raise Exceptions::SaveFailed.new 'sending'
+                submission.save or raise Alerter::Exceptions::SaveFailed.new 'sending'
                 subject, body = '', ''
                 if submission.content.has_key? 'error'
                     subject = 'ERROR - ' + submission.content['error']
@@ -43,38 +47,39 @@ module Tags
                 #puts "B: " + body
                 mailer.send(@config[:from],@config[:recipients],subject,body)
                 submission.notified_at = DateTime.now
-                submission.save or raise Exceptions::SaveFailed.new 'sent'
+                submission.save or raise Alerter::Exceptions::SaveFailed.new 'sent'
             end
         end
         
         def put(request,submission,param)
             counters = []
             counters_fields = %w{total copied skipped mismatch failed extras}
-            ccftp_backup = {}
+            robocopy_backup = {}
             error = nil
             request.body.read.each_line do |line|
                 if line.match(/^\s.*Dirs :\s+([^\r\n]*)/)
-                    ccftp_backup['dirs'] = Hash[counters_fields.zip($1.split /\s+/)]
+                    robocopy_backup['dirs'] = Hash[counters_fields.zip($1.split /\s+/)]
                 end
                 if line.match(/^\s.*Files :\s+([^\r\n]*)/)
-                    ccftp_backup['files'] = Hash[counters_fields.zip($1.split /\s+/)]
+                    robocopy_backup['files'] = Hash[counters_fields.zip($1.split /\s+/)]
                 end
-                ccftp_backup['runtime'] = $1 if line.match(/^\s.*Times :\s+([^\s]*)/)
+                robocopy_backup['runtime'] = $1 if line.match(/^\s.*Times :\s+([^\s]*)/)
                 begin
-                    ccftp_backup['ended'] = DateTime.parse($1) if line.match(/^\s.*Ended :\s+([^\r\n]*)/)
+                    robocopy_backup['ended'] = DateTime.parse($1) if line.match(/^\s.*Ended :\s+([^\r\n]*)/)
                 rescue ArgumentError => e
                     error ||= e.to_s
                 end
             end
-            error ||= "Missing data?" unless ["dirs", "files", "runtime", "ended"].all? {|k| ccftp_backup.has_key? k}
-            #p ccftp_backup
-            ccftp_backup['error']   = error if !error.nil?
-            submission.tag          = 'ccftp'
+            error ||= "Missing data?" unless ["dirs", "files", "runtime", "ended"].all? {|k| robocopy_backup.has_key? k}
+            #p robocopy_backup
+            robocopy_backup['error']   = error if !error.nil?
+            submission.tag          = @tag_name
             submission.submitted_at = DateTime.now
-            submission.content      = ccftp_backup
-            submission.save or raise Exceptions::HandlerError.new, "Can\'t save\n"
-            error.nil? or raise Exceptions::HandlerError.new, "#{error}\n"
+            submission.content      = robocopy_backup
+            submission.save or raise Alerter::Exceptions::HandlerError.new, "Can\'t save\n"
+            error.nil? or raise Alerter::Exceptions::HandlerError.new, "#{error}\n"
             return "OK\n"
         end
     end
+
 end

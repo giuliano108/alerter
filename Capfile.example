@@ -1,0 +1,63 @@
+require "bundler/capistrano"
+require "rvm/capistrano"
+load 'deploy'
+
+set :rvm_ruby_string, "1.9.3"
+set :application, "alerter"
+set :branch, "master"
+set :deploy_to, "/var/www/alerter"
+set :deploy_via, :remote_cache
+set :keep_releases, 5
+set :normalize_asset_timestamps, false
+set :repository,  "git@gitrepo.local:alerter.git"
+set :scm, "git"
+set :use_sudo, false
+set :user, "wwwuser"
+ssh_options[:forward_agent] = true
+default_run_options[:pty] = true
+
+role :web, "192.168.123.123"
+
+after 'deploy:update', 'deploy:upload_sensitive'
+after 'deploy:update', 'foreman:export'
+after 'deploy:update', 'foreman:restart'
+
+# Taken from: https://gist.github.com/meskyanichi/1047160
+namespace :foreman do
+  desc "Export the Procfile to Ubuntu's upstart scripts"
+  task :export, :roles => :web do
+    put "RACK_ENV=production\n", "#{current_path}/.env"
+    run "cd #{current_path} && rvmsudo bundle exec foreman export upstart /etc/init " +
+        "-a #{application} -u #{user} -l #{shared_path}/log"
+  end
+ 
+  desc "Start the application services"
+  task :start, :roles => :web do
+    sudo "start #{application}"
+  end
+ 
+  desc "Stop the application services"
+  task :stop, :roles => :web do
+    sudo "stop #{application}"
+  end
+ 
+  desc "Restart the application services"
+  task :restart, :roles => :web do
+    run "sudo start #{application} || sudo restart #{application}"
+  end
+ 
+  desc "Display logs for a certain process - arg example: PROCESS=web-1"
+  task :logs, :roles => :web do
+    run "cd #{current_path}/log && cat #{ENV["PROCESS"]}.log"
+  end
+end
+
+namespace :deploy do
+  desc "Upload (sensitive) files that are not under version control"
+  task :upload_sensitive do
+    top.upload "config/01-production.yaml", "#{current_path}/config/01-production.yaml"
+  end
+
+  task :restart do
+  end
+end

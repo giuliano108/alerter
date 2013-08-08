@@ -1,17 +1,17 @@
-module Tags
-    class Dhcpclone < Tags::Handler
+module Alerter::Tags
+    class Dhcpclone < Alerter::Tags::Handler
         def initialize
             super
-            case Tags.get_environment
+            case Alerter::Tags.get_environment
             when :production
                 @config = {
-                    :recipients => ['it@domain.co.uk'],
-                    :from       => 'DHCP VM clone <alerter@monitoring.domain.co.uk>'
+                    :recipients => Alerter[:mailer_recipients],
+                    :from       => "DHCP VM clone <#{Alerter[:mailer_from]}>"
                 }
             when :development
                 @config = {
-                    :recipients => ['giuliano@domain.co.uk'],
-                    :from       => 'DHCP VM clone <root@alerter>'
+                    :recipients => Alerter[:mailer_recipients],
+                    :from       => "DHCP VM clone <#{Alerter[:mailer_from]}>"
                 }
             else
                 fail 'Unknown environment'
@@ -21,7 +21,7 @@ module Tags
         def pending(submissions,url,mailer)
             submissions.each do |submission|
                 submission.notification_type = :sending 
-                submission.save or raise Exceptions::SaveFailed.new 'sending'
+                submission.save or raise Alerter::Exceptions::SaveFailed.new 'sending'
                 subject, body = '', ''
                 if submission.content.has_key? 'error'
                     subject = 'ERROR - ' + submission.content['error']
@@ -40,7 +40,7 @@ module Tags
                 #puts "B: " + body
                 mailer.send(@config[:from],@config[:recipients],subject,body)
                 submission.notified_at = DateTime.now
-                submission.save or raise Exceptions::SaveFailed.new 'sent'
+                submission.save or raise Alerter::Exceptions::SaveFailed.new 'sent'
             end
         end
 
@@ -77,11 +77,11 @@ module Tags
             end
             #p dhcp_clone
             dhcp_clone['error']     = error if !error.nil?
-            submission.tag          = 'dhcpclone'
+            submission.tag          = @tag_name
             submission.submitted_at = DateTime.now
             submission.content      = dhcp_clone
-            submission.save or raise Exceptions::HandlerError.new, "Can\'t save\n"
-            error.nil? or raise Exceptions::HandlerError.new, "#{error}\n"
+            submission.save or raise Alerter::Exceptions::HandlerError.new, "Can\'t save\n"
+            error.nil? or raise Alerter::Exceptions::HandlerError.new, "#{error}\n"
             return "OK\n"
         end
     end

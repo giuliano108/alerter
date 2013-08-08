@@ -1,0 +1,9 @@
+DEFAULTS: &DEFAULTS
+  datamapper_require: 'dm-sqlite-adapter'
+  datamapper_adapter: 'sqlite3'
+  datamapper_parameters: 'blah'
+  pony_via: :sendmail
+  pony_options: {}
+  mailer_from: 'root@alerter'
+  mailer_recipients: 
+    - john@doe.com

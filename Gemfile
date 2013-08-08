@@ -1,7 +1,5 @@
 source :rubygems
-gem 'mongrel', '>=1.2.0.pre2'
 gem 'sinatra', '>= 1.0'
-gem 'sinatra-reloader'
 gem 'rake'
 gem 'haml'
 gem 'json'
@@ -15,9 +13,10 @@ gem 'ice_cube', '>=0.10.0'
 gem 'capistrano'
 gem 'rvm-capistrano'
 gem 'thin'
+gem 'foreman'
+gem 'nsconfig', :git => 'git://github.com/giuliano108/nsconfig.git', :tag => 'v0.1.0'
 
 group :development do
-  gem 'ruby-debug19'
-  gem 'shotgun'
+    gem 'sinatra-reloader'
+    gem 'pry'
 end
-

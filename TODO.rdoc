@@ -1,0 +1,4 @@
+- tag filter in the UI
+- potential mail flood when unable to .save in "unsent"
+- too much work in "pending"?
+- rake task to build indexes (doesn't look like DataMapper supports this)

@@ -1,5 +1,5 @@
 .*.swp
-log/*.log
-data/*.db
-doc
-TODO.rdoc
+log
+/config/01-development.yaml
+/config/01-production.yaml
+Capfile

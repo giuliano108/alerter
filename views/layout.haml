@@ -1,7 +1,7 @@
 !!!
 %html{:lang => 'en'}
   %head
-    %title= @title || SiteConfig.title
+    %title= get_title
     %link{:href => '/bootstrap.min.css', :rel => 'stylesheet', :type => 'text/css'}
     %link{:href => '/colorbox.css', :rel => 'stylesheet', :type => 'text/css'}
     :css
@@ -23,7 +23,7 @@
     .navbar
       .navbar-inner
         .container
-          %a.brand{:href => '/'} #{SiteConfig.title}
+          %a.brand{:href => '/'} #{get_title}
           %ul.nav
             %li
               %p.navbar-text Collects scheduled jobs results. Sends out notifications and alerts.
@@ -32,5 +32,5 @@
     %hr
       .container
         .pull-left
-          #{SiteConfig.title}
+          #{get_title}
         .pull-right= "(#{Sinatra::Base.environment.to_s} on #{request.env['SERVER_SOFTWARE'].gsub(/[ \/].*$/, '')})"
